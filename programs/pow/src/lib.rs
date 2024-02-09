@@ -37,6 +37,10 @@ pub mod pow {
         register.mint = ctx.accounts.mint.key();
         register.tier = tier;
 
+        if tier == 5 || tier == 6 {
+            panic!();
+        }
+
         let metadata = match tier {
             1 => "VE87I01Vw5Fw-R-OkB7DQexJEfBXGDp9GiX-OltfQwo",
             2 => "Wskg0eK--pzYK4P9V5e3zSXTBrG3huN0adFYgn_xY5M",
