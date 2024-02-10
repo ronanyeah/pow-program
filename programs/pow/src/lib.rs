@@ -37,7 +37,7 @@ pub mod pow {
         register.mint = ctx.accounts.mint.key();
         register.tier = tier;
 
-        if tier == 5 || tier == 6 {
+        if tier == 5 || tier == 6 || tier == 7 {
             panic!();
         }
 
