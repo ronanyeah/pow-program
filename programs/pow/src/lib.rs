@@ -28,7 +28,7 @@ const METAPLEX_DEFAULT_RULES: Pubkey = pubkey!("eBJLFYPxJmMGKuFwpDWkzxZeUrad92kZ
 pub mod pow {
     use super::*;
 
-    pub fn mint(ctx: Context<Initialize>) -> Result<()> {
+    pub fn mint(ctx: Context<MintPow>) -> Result<()> {
         let id = extract_mint_id(&ctx.accounts.mint.key()).unwrap();
         let tier = id.to_string().len() as u8;
 
@@ -135,10 +135,36 @@ pub mod pow {
 
         Ok(())
     }
+    pub fn revert_collection_auth(ctx: Context<RevertCollectionAuth>) -> Result<()> {
+        UpdateV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
+            .authority(&ctx.accounts.mint_authority)
+            .mint(&ctx.accounts.collection_mint.to_account_info())
+            .metadata(&ctx.accounts.collection_metadata.to_account_info())
+            .payer(&ctx.accounts.signer)
+            .system_program(&ctx.accounts.system_program)
+            .sysvar_instructions(&ctx.accounts.sysvar_ixs)
+            .new_update_authority(NFT_UPDATE_AUTH)
+            .invoke_signed(&[&[CREATOR_SEED, &[ctx.bumps.mint_authority]]])?;
+
+        Ok(())
+    }
+
+    pub fn close_register(ctx: Context<CloseRegister>) -> Result<()> {
+        let register = &mut ctx.accounts.register;
+        if register.mint.is_on_curve() {
+            panic!();
+        }
+        close_register_account(
+            &ctx.accounts.register.to_account_info(),
+            &ctx.accounts.signer.to_account_info(),
+        );
+
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
-pub struct Initialize<'info> {
+pub struct MintPow<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
 
@@ -203,6 +229,45 @@ pub struct Initialize<'info> {
     pub spl_ata_program: Program<'info, AssociatedToken>,
 }
 
+#[derive(Accounts)]
+#[instruction(mint_id: u32)]
+pub struct CloseRegister<'info> {
+    #[account(mut, address = NFT_UPDATE_AUTH)]
+    pub signer: Signer<'info>,
+
+    #[account(
+        seeds = [
+            REGISTER_SEED,
+            &mint_id.to_le_bytes()
+        ],
+        bump,
+    )]
+    pub register: Account<'info, Register>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct RevertCollectionAuth<'info> {
+    #[account(mut, address = NFT_UPDATE_AUTH)]
+    pub signer: Signer<'info>,
+    #[account(
+        seeds = [CREATOR_SEED],
+        bump,
+    )]
+    /// CHECK: PDA signer
+    pub mint_authority: UncheckedAccount<'info>,
+    #[account(address = COLLECTION)]
+    pub collection_mint: Account<'info, Mint>,
+    #[account(mut)]
+    pub collection_metadata: Account<'info, MetadataAccount>,
+    pub token_metadata_program: Program<'info, Metadata>,
+    pub system_program: Program<'info, System>,
+    #[account(address = sysvar::instructions::ID)]
+    /// CHECK: Address check
+    pub sysvar_ixs: UncheckedAccount<'info>,
+}
+
 fn extract_mint_id(input: &Pubkey) -> Option<u32> {
     if input.is_on_curve() {
         input.to_string().strip_prefix("pow").and_then(|s| {
@@ -224,4 +289,13 @@ pub struct Register {
     id: u32,
     tier: u8,
     mint: Pubkey,
+}
+
+fn close_register_account<'info>(register: &AccountInfo<'info>, recipient: &AccountInfo<'info>) {
+    let recipient_lamports = &recipient.lamports();
+
+    **recipient.lamports.borrow_mut() =
+        recipient_lamports.checked_add(register.lamports()).unwrap();
+
+    **register.lamports.borrow_mut() = 0;
 }
