@@ -48,7 +48,10 @@ pub mod pow {
             4 => "-XJ76ysuhGVXly3nULQseKUIrRHT3XY_lbc6YNtUvKs",
             5 => "XRe-xit7mUPK-33yifZNDgKP8VgRe_gLAmk61f648kE",
             6 => "-kGVweWLthx4h2kXOr38E8x2k2xqQ_m4xEpzaXOP5hE",
-            _ => "mMgT9ZGv30A9TgK9CaAnneX3CssfLrpp3zNoe89icig",
+            7 => "4sd8F-d24qNY5OepIUjUdOpILdw2Vsqg31PlSAvkBqs",
+            8 => "gvf4zAF3GgedWOkmiUgL_QQszzzx3udnyXxF9ASXYW0",
+            9 => "r2O-qQly3bAvqt7OhjePobqZJ2dR6RIz9WEDKRVEEW0",
+            _ => "gxpTWal4YJRkpMs3R_1kqq4kl2Au4SAlYqgPv7LJXkw",
         };
 
         CreateV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
