@@ -201,15 +201,19 @@ pub struct Initialize<'info> {
 }
 
 fn extract_mint_id(input: &Pubkey) -> Option<u32> {
-    input.to_string().strip_prefix("pow").and_then(|s| {
-        s.chars()
-            // Gathers 1-9 numbers
-            // 0 is not found in pubkeys
-            .take_while(|c| c.is_digit(10))
-            .collect::<String>()
-            .parse()
-            .ok()
-    })
+    if input.is_on_curve() {
+        input.to_string().strip_prefix("pow").and_then(|s| {
+            s.chars()
+                // Gathers 1-9 numbers
+                // 0 is not found in pubkeys
+                .take_while(|c| c.is_digit(10))
+                .collect::<String>()
+                .parse()
+                .ok()
+        })
+    } else {
+        None
+    }
 }
 
 #[account]
