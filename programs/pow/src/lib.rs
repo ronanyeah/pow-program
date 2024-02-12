@@ -1,6 +1,8 @@
 use anchor_lang::prelude::Pubkey;
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::{pubkey, sysvar};
+use anchor_lang::solana_program::{
+    program_memory::sol_memcmp, pubkey, pubkey::PUBKEY_BYTES, sysvar,
+};
 use anchor_spl::{
     associated_token::AssociatedToken,
     metadata::{MasterEditionAccount, Metadata, MetadataAccount},
@@ -29,6 +31,13 @@ pub mod pow {
     use super::*;
 
     pub fn mint(ctx: Context<MintPow>) -> Result<()> {
+        let current_ix =
+            sysvar::instructions::get_instruction_relative(0, &ctx.accounts.sysvar_ixs).unwrap();
+        let is_cpi = !cmp_pubkeys(&current_ix.program_id, &ID);
+        if is_cpi {
+            panic!();
+        }
+
         let id = extract_mint_id(&ctx.accounts.mint.key()).unwrap();
         let tier = id.to_string().len() as u8;
 
@@ -269,19 +278,21 @@ pub struct RevertCollectionAuth<'info> {
 }
 
 fn extract_mint_id(input: &Pubkey) -> Option<u32> {
-    if input.is_on_curve() {
-        input.to_string().strip_prefix("pow").and_then(|s| {
-            s.chars()
-                // Gathers 1-9 numbers
-                // 0 is not found in pubkeys
-                .take_while(|c| c.is_digit(10))
-                .collect::<String>()
-                .parse()
-                .ok()
-        })
-    } else {
-        None
-    }
+    // Unimplemented onchain
+    // https://github.com/solana-labs/solana/blob/39b4aecc7d28b021f33e6959b5a1dfc4fc1fafbb/sdk/program/src/pubkey.rs#L167
+    //if input.is_on_curve() {
+    input.to_string().strip_prefix("pow").and_then(|s| {
+        s.chars()
+            // Gathers 1-9 numbers
+            // 0 is not found in pubkeys
+            .take_while(|c| c.is_digit(10))
+            .collect::<String>()
+            .parse()
+            .ok()
+    })
+    //} else {
+    //None
+    //}
 }
 
 #[account]
@@ -289,6 +300,10 @@ pub struct Register {
     id: u32,
     tier: u8,
     mint: Pubkey,
+}
+
+fn cmp_pubkeys(a: &Pubkey, b: &Pubkey) -> bool {
+    sol_memcmp(a.as_ref(), b.as_ref(), PUBKEY_BYTES) == 0
 }
 
 fn close_register_account<'info>(register: &AccountInfo<'info>, recipient: &AccountInfo<'info>) {
