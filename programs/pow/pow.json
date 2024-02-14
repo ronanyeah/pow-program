@@ -149,7 +149,7 @@
         },
         {
           "name": "register",
-          "isMut": false,
+          "isMut": true,
           "isSigner": false
         },
         {
@@ -158,7 +158,12 @@
           "isSigner": false
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "nftId",
+          "type": "u32"
+        }
+      ]
     }
   ],
   "accounts": [

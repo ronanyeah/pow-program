@@ -21,8 +21,8 @@ const NFT_UPDATE_AUTH: Pubkey = pubkey!("PUPTaF8u37PFBK4d5cRi5vnjfuL6fMZ4y6Xofen
 const ROYALTIES: Pubkey = pubkey!("PRLdyE6EAVhj2KUJ9ScttLoRvuwgFqWDxTv3qjZhmjJ");
 const COLLECTION: Pubkey = pubkey!("PcoL2azniJHzRGjGMpj8PhxSwuFtb7QqxDVHC5xs7uL");
 
-const CREATOR_SEED: &[u8] = b"CREATOR";
-const REGISTER_SEED: &[u8] = b"REGISTER";
+pub const CREATOR_SEED: &[u8] = b"CREATOR";
+pub const REGISTER_SEED: &[u8] = b"REGISTER";
 
 const METAPLEX_DEFAULT_RULES: Pubkey = pubkey!("eBJLFYPxJmMGKuFwpDWkzxZeUrad92kZRC5BJLpzyT9");
 
@@ -57,7 +57,7 @@ pub mod pow {
             4 => "-XJ76ysuhGVXly3nULQseKUIrRHT3XY_lbc6YNtUvKs",
             5 => "XRe-xit7mUPK-33yifZNDgKP8VgRe_gLAmk61f648kE",
             6 => "-kGVweWLthx4h2kXOr38E8x2k2xqQ_m4xEpzaXOP5hE",
-            7 => "4sd8F-d24qNY5OepIUjUdOpILdw2Vsqg31PlSAvkBqs",
+            7 => "pyW0mT0PjhZl2oITTuZlQbN0nkiU35se99JsjWwhhQg",
             8 => "gvf4zAF3GgedWOkmiUgL_QQszzzx3udnyXxF9ASXYW0",
             9 => "r2O-qQly3bAvqt7OhjePobqZJ2dR6RIz9WEDKRVEEW0",
             _ => "gxpTWal4YJRkpMs3R_1kqq4kl2Au4SAlYqgPv7LJXkw",
@@ -158,11 +158,15 @@ pub mod pow {
         Ok(())
     }
 
-    pub fn close_register(ctx: Context<CloseRegister>) -> Result<()> {
-        let register = &mut ctx.accounts.register;
-        if register.mint.is_on_curve() {
-            panic!();
-        }
+    pub fn close_register(ctx: Context<CloseRegister>, nft_id: u32) -> Result<()> {
+        let _ = nft_id;
+
+        // TODO
+        //let register = &mut ctx.accounts.register;
+        //if register.mint.is_on_curve() {
+        //panic!();
+        //}
+
         close_register_account(
             &ctx.accounts.register.to_account_info(),
             &ctx.accounts.signer.to_account_info(),
@@ -239,15 +243,16 @@ pub struct MintPow<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(mint_id: u32)]
+#[instruction(nft_id: u32)]
 pub struct CloseRegister<'info> {
     #[account(mut, address = NFT_UPDATE_AUTH)]
     pub signer: Signer<'info>,
 
     #[account(
+        mut,
         seeds = [
             REGISTER_SEED,
-            &mint_id.to_le_bytes()
+            &nft_id.to_le_bytes()
         ],
         bump,
     )]
@@ -277,9 +282,9 @@ pub struct RevertCollectionAuth<'info> {
     pub sysvar_ixs: UncheckedAccount<'info>,
 }
 
-fn extract_mint_id(input: &Pubkey) -> Option<u32> {
+pub fn extract_mint_id(input: &Pubkey) -> Option<u32> {
     // Unimplemented onchain
-    // https://github.com/solana-labs/solana/blob/39b4aecc7d28b021f33e6959b5a1dfc4fc1fafbb/sdk/program/src/pubkey.rs#L167
+    // https://github.com/solana-labs/solana/issues/21270
     //if input.is_on_curve() {
     input.to_string().strip_prefix("pow").and_then(|s| {
         s.chars()
@@ -295,11 +300,12 @@ fn extract_mint_id(input: &Pubkey) -> Option<u32> {
     //}
 }
 
+#[derive(Debug)]
 #[account]
 pub struct Register {
-    id: u32,
-    tier: u8,
-    mint: Pubkey,
+    pub id: u32,
+    pub tier: u8,
+    pub mint: Pubkey,
 }
 
 fn cmp_pubkeys(a: &Pubkey, b: &Pubkey) -> bool {
